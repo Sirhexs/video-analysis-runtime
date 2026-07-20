@@ -1,0 +1,5 @@
+{
+  "profile": "douyin-cloud",
+  "localAsr": false,
+  "connectors": ["douyin"]
+}

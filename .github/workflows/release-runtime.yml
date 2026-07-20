@@ -1,0 +1,80 @@
+name: Release Video Analysis Runtime
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  asr-bundle:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Cache ASR bundle
+        uses: actions/cache@v4
+        with:
+          path: dist/asr-bundle
+          key: asr-small-${{ hashFiles('server/asr/**', 'tools/build-asr-bundle.mjs') }}
+      - name: Build ASR bundle
+        shell: pwsh
+        run: |
+          if (-not (Test-Path dist/asr-bundle/asr-manifest.json)) {
+            python -m venv server/asr/.venv
+            server/asr/.venv/Scripts/python.exe -m pip install -r server/asr/requirements.txt -r server/asr/requirements-build.txt
+            server/asr/.venv/Scripts/huggingface-cli.exe download Systran/faster-whisper-small --local-dir dist/model-small
+            node tools/build-asr-bundle.mjs --model-dir=dist/model-small
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asr-bundle
+          path: dist/asr-bundle
+
+  build:
+    needs: asr-bundle
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [cloud, hybrid, douyin-cloud, douyin-hybrid]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: server/package-lock.json }
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+        working-directory: server
+      - uses: actions/download-artifact@v4
+        if: contains(matrix.profile, 'hybrid')
+        with:
+          name: asr-bundle
+          path: dist/asr-bundle
+      - name: Install FFmpeg and Inno Setup
+        run: choco install ffmpeg innosetup --no-progress -y
+      - name: Build desktop profile
+        run: node tools/build-desktop.mjs --profile=${{ matrix.profile }}
+      - name: Build installer
+        env:
+          VIDEO_ANALYSIS_CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          VIDEO_ANALYSIS_EDGE_EXTENSION_ID: ${{ secrets.EDGE_EXTENSION_ID }}
+        run: node tools/build-installer.mjs --profile=${{ matrix.profile }}
+      - name: Profile smoke test
+        run: node tools/test-desktop-smoke.mjs --profile=${{ matrix.profile }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-${{ matrix.profile }}
+          path: |
+            dist/installer/*.exe
+            dist/installer/*.sha256
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts, pattern: runtime-*, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with: { files: artifacts/* }

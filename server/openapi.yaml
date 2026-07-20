@@ -1,0 +1,115 @@
+openapi: 3.1.0
+info:
+  title: Video Analysis Runtime API
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:18765
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Runtime health and capability summary
+      responses:
+        '200': { description: Healthy }
+  /v1/capabilities:
+    get:
+      summary: Installed profile capabilities
+      responses:
+        '200': { description: Capability manifest }
+  /v1/assets:
+    post:
+      summary: Upload a raw media body or import an HTTP(S) URL with JSON
+      parameters:
+        - in: header
+          name: X-Filename
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, contentEncoding: binary }
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url: { type: string, format: uri }
+                filename: { type: string }
+      responses:
+        '201': { description: Asset created }
+  /v1/assets/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    get:
+      summary: Get asset metadata
+      responses:
+        '200': { description: Asset metadata }
+    delete:
+      summary: Delete an asset
+      responses:
+        '200': { description: Deleted }
+  /v1/jobs:
+    post:
+      summary: Submit an atomic operation or sequential pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+      responses:
+        '202': { description: Job accepted }
+  /v1/jobs/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    get:
+      summary: Get persisted job state
+      responses:
+        '200': { description: Job state }
+  /v1/jobs/{id}/cancel:
+    post:
+      summary: Cancel a queued or running job
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Cancelled job state }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    JobRequest:
+      type: object
+      required: [operation]
+      properties:
+        operation:
+          enum:
+            - media.probe
+            - media.extract_audio
+            - media.extract_frames
+            - asr.transcribe
+            - llm.generate
+            - video.analyze
+            - connector.douyin.import
+            - pipeline.run
+        input: { type: object }
+        stages:
+          type: array
+          items:
+            type: object
+            required: [id, type]
+            properties:
+              id: { type: string }
+              type: { type: string }
+              input: { type: object }

@@ -1,0 +1,22 @@
+{
+  "name": "video-analysis-runtime-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Video Analysis Runtime developer infrastructure and Windows distributions",
+  "scripts": {
+    "test": "npm.cmd --prefix server test",
+    "start": "npm.cmd --prefix server start",
+    "dev": "npm.cmd --prefix server run dev",
+    "build:native-host": "cargo build --manifest-path native-host/Cargo.toml --release",
+    "prepare:asr": "node tools/build-asr-bundle.mjs",
+    "test:asr-bundle": "node tools/test-asr-bundle.mjs",
+    "build:desktop": "node tools/build-desktop.mjs",
+    "build:installer": "node tools/build-installer.mjs",
+    "build:profiles": "node tools/build-runtime-profiles.mjs",
+    "test:desktop": "node tools/test-desktop-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "profile": "douyin-hybrid",
+  "localAsr": true,
+  "localModel": "faster-whisper-small",
+  "connectors": ["douyin"]
+}
