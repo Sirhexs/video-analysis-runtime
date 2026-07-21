@@ -134,7 +134,7 @@ npm.cmd run build:installer -- --profile=cloud
 ```powershell
 python -m venv server/asr/.venv
 server/asr/.venv/Scripts/python.exe -m pip install -r server/asr/requirements.txt -r server/asr/requirements-build.txt
-server/asr/.venv/Scripts/huggingface-cli.exe download Systran/faster-whisper-small --local-dir dist/model-small
+server/asr/.venv/Scripts/python.exe -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='Systran/faster-whisper-small', local_dir='dist/model-small')"
 node tools/build-asr-bundle.mjs --model-dir=dist/model-small
 npm.cmd run test:asr-bundle
 ```
@@ -172,11 +172,11 @@ $env:VIDEO_ANALYSIS_EDGE_EXTENSION_ID="nfiieinehobmaofhodfaccgjboegcdck"
 6. 上传安装器和 SHA-256 Artifact。
 7. Tag 触发时创建 GitHub Release。
 
-发布 `1.0.0` 的示例：
+发布 `1.0.1` 的示例：
 
 ```powershell
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.1
+git push origin v1.0.1
 ```
 
 手动运行工作流只生成 Artifacts，不创建 GitHub Release。Tag 必须采用 `v<package.json version>` 格式。

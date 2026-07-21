@@ -64,7 +64,7 @@ jobs:
           if (-not (Test-Path dist/asr-bundle/asr-manifest.json)) {
             python -m venv server/asr/.venv
             server/asr/.venv/Scripts/python.exe -m pip install -r server/asr/requirements.txt -r server/asr/requirements-build.txt
-            server/asr/.venv/Scripts/huggingface-cli.exe download Systran/faster-whisper-small --local-dir dist/model-small
+            server/asr/.venv/Scripts/python.exe -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='Systran/faster-whisper-small', local_dir='dist/model-small')"
             node tools/build-asr-bundle.mjs --model-dir=dist/model-small
           }
       - uses: actions/upload-artifact@v4

@@ -78,7 +78,7 @@ test('health requires token and shutdown exits cleanly', async (t) => {
   const health = await waitForHealth(url, token);
   assert.equal(health.ok, true);
   assert.equal(health.product, 'Video Analysis Runtime');
-  assert.equal(health.version, '1.0.0');
+  assert.equal(health.version, '1.0.1');
   assert.equal(health.apiVersion, '1.0');
   assert.equal(health.profile, 'hybrid');
   assert.equal(health.activeJobs, 0);
