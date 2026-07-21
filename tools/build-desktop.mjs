@@ -5,6 +5,13 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const workspacePackage = JSON.parse(
+  fs.readFileSync(path.join(root, 'package.json'), 'utf8'),
+);
+const version = String(workspacePackage.version || '').trim();
+if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
+  throw new Error(`package.json 中的版本号无效：${version || '<empty>'}`);
+}
 const args = process.argv.slice(2);
 const valueArg = (name) => args.find((value) => value.startsWith(`--${name}=`))?.slice(name.length + 3);
 const profile = valueArg('profile') || 'douyin-hybrid';
@@ -154,7 +161,7 @@ fs.writeFileSync(path.join(outDir, 'capabilities.json'), `${JSON.stringify(capab
 fs.writeFileSync(
   path.join(outDir, 'version.json'),
   `${JSON.stringify({
-    version: '1.0.0',
+    version,
     profile,
     node: process.version,
     builtAt: new Date().toISOString(),

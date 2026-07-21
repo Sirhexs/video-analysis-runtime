@@ -2,6 +2,7 @@
   "name": "video-analysis-runtime-workspace",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Video Analysis Runtime developer infrastructure and Windows distributions",
   "scripts": {

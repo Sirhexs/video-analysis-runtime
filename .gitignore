@@ -13,3 +13,8 @@ server/logs/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local AI tooling
+.claude/
+.codex/
+.agents/
