@@ -122,6 +122,6 @@ export const config = {
   longVideoMaxSec: Number(process.env.LONG_VIDEO_MAX_SEC || 180),
   /** 最多分成几段（超长则拉长每段以覆盖全片） */
   maxChunks: Number(process.env.MAX_CHUNKS || 12),
-  version: '1.0.1',
+  version: '1.0.2',
   product: 'Video Analysis Runtime',
 };

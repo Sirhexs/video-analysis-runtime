@@ -176,11 +176,11 @@ $env:VIDEO_ANALYSIS_EDGE_EXTENSION_ID="nfiieinehobmaofhodfaccgjboegcdck"
 6. 上传包含安装器和 SHA-256 校验文件的 Actions Artifact。
 7. Tag 触发时创建 GitHub Release，并仅发布安装器文件。
 
-发布 `1.0.1` 的示例：
+发布 `1.0.2` 的示例：
 
 ```powershell
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.0.2
+git push origin v1.0.2
 ```
 
 手动运行工作流只生成 Artifacts，不创建 GitHub Release。Tag 必须采用 `v<package.json version>` 格式。
