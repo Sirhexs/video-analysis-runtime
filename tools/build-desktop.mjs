@@ -33,8 +33,58 @@ function findOnPath(name) {
   try {
     return execFileSync('where.exe', [name], {
       encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'],
-    }).split(/\r?\n/).map((value) => value.trim()).find(Boolean);
+    }).split(/\r?\n/)
+      .map((value) => value.trim())
+      .find((candidate) => candidate && !isChocolateyShim(candidate));
   } catch { return undefined; }
+}
+
+function chocolateyRoots() {
+  return [
+    process.env.ChocolateyInstall,
+    process.env.ProgramData && path.join(process.env.ProgramData, 'chocolatey'),
+    'C:\\ProgramData\\chocolatey',
+  ].filter(Boolean).map((value) => path.resolve(value));
+}
+
+function isChocolateyShim(candidate) {
+  const directory = path.dirname(path.resolve(candidate)).toLowerCase();
+  return chocolateyRoots().some(
+    (rootDir) => directory === path.join(rootDir, 'bin').toLowerCase(),
+  );
+}
+
+function findNamedFile(rootDir, name) {
+  const pending = [rootDir];
+  while (pending.length > 0) {
+    const current = pending.shift();
+    let entries;
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch { continue; }
+    for (const entry of entries) {
+      const candidate = path.join(current, entry.name);
+      if (entry.isFile() && entry.name.toLowerCase() === name.toLowerCase()) return candidate;
+      if (entry.isDirectory()) pending.push(candidate);
+    }
+  }
+  return undefined;
+}
+
+function findChocolateyFfmpeg(name) {
+  for (const rootDir of chocolateyRoots()) {
+    const toolsDir = path.join(rootDir, 'lib', 'ffmpeg', 'tools');
+    const preferred = path.join(toolsDir, 'ffmpeg', 'bin', name);
+    if (fs.existsSync(preferred)) return preferred;
+    const discovered = findNamedFile(toolsDir, name);
+    if (discovered) return discovered;
+  }
+  return undefined;
+}
+
+function configuredExecutable(candidate, name) {
+  if (!candidate) return undefined;
+  return isChocolateyShim(candidate) ? findChocolateyFfmpeg(name) : candidate;
 }
 
 function findWingetFfmpeg(name) {
@@ -53,6 +103,18 @@ function findWingetFfmpeg(name) {
 function copyFile(source, target) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(source, target);
+}
+
+function verifyBundledExecutable(target, name, source) {
+  try {
+    execFileSync(target, ['-version'], {
+      encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], timeout: 15_000,
+    });
+  } catch (error) {
+    const stderr = error?.stderr?.toString('utf8').trim();
+    const detail = stderr || error?.message || String(error);
+    throw new Error(`打包后的 ${name} 无法独立运行（来源：${source}）：${detail}`);
+  }
 }
 
 function copyServer() {
@@ -129,13 +191,21 @@ if (features.localAsr) {
 const ffmpegDir = valueArg('ffmpeg-dir');
 const ffmpeg = ffmpegDir
   ? path.resolve(root, ffmpegDir, 'ffmpeg.exe')
-  : process.env.FFMPEG_PATH || findOnPath('ffmpeg.exe') || findWingetFfmpeg('ffmpeg.exe');
+  : configuredExecutable(process.env.FFMPEG_PATH, 'ffmpeg.exe') || findOnPath('ffmpeg.exe') ||
+    findChocolateyFfmpeg('ffmpeg.exe') || findWingetFfmpeg('ffmpeg.exe');
 const ffprobe = ffmpegDir
   ? path.resolve(root, ffmpegDir, 'ffprobe.exe')
-  : process.env.FFPROBE_PATH || findOnPath('ffprobe.exe') || findWingetFfmpeg('ffprobe.exe');
+  : configuredExecutable(process.env.FFPROBE_PATH, 'ffprobe.exe') || findOnPath('ffprobe.exe') ||
+    findChocolateyFfmpeg('ffprobe.exe') || findWingetFfmpeg('ffprobe.exe');
+let ffmpegBundled = false;
 if (ffmpeg && ffprobe && fs.existsSync(ffmpeg) && fs.existsSync(ffprobe)) {
-  copyFile(ffmpeg, path.join(outDir, 'ffmpeg', 'ffmpeg.exe'));
-  copyFile(ffprobe, path.join(outDir, 'ffmpeg', 'ffprobe.exe'));
+  const bundledFfmpeg = path.join(outDir, 'ffmpeg', 'ffmpeg.exe');
+  const bundledFfprobe = path.join(outDir, 'ffmpeg', 'ffprobe.exe');
+  copyFile(ffmpeg, bundledFfmpeg);
+  copyFile(ffprobe, bundledFfprobe);
+  verifyBundledExecutable(bundledFfmpeg, 'ffmpeg.exe', ffmpeg);
+  verifyBundledExecutable(bundledFfprobe, 'ffprobe.exe', ffprobe);
+  ffmpegBundled = true;
 } else if (!skipFfmpeg) {
   throw new Error('找不到 ffmpeg/ffprobe');
 }
@@ -165,7 +235,7 @@ fs.writeFileSync(
     profile,
     node: process.version,
     builtAt: new Date().toISOString(),
-    ffmpegBundled: Boolean(ffmpeg && ffprobe),
+    ffmpegBundled,
     asrBundled: features.localAsr,
     asrModel: asrManifest?.model,
   }, null, 2)}\n`,

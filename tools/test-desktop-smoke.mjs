@@ -41,6 +41,28 @@ async function hostAction(action) {
   return JSON.parse(Buffer.concat(stdout).toString('utf8').trim());
 }
 
+async function assertBundledTool(name) {
+  const executable = path.join(installDir, 'ffmpeg', `${name}.exe`);
+  assert.equal(
+    await fs.stat(executable).then((stat) => stat.isFile()).catch(() => false),
+    true,
+    `缺少 ${executable}`,
+  );
+  const child = spawn(executable, ['-version'], { windowsHide: true });
+  const stdout = [];
+  const stderr = [];
+  child.stdout.on('data', (chunk) => stdout.push(chunk));
+  child.stderr.on('data', (chunk) => stderr.push(chunk));
+  const code = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { child.kill(); reject(new Error(`${name} -version 超时`)); }, 20_000);
+    child.once('error', reject);
+    child.once('exit', (value) => { clearTimeout(timer); resolve(value); });
+  });
+  const output = Buffer.concat([...stdout, ...stderr]).toString('utf8');
+  assert.equal(code, 0, output);
+  assert.match(output, new RegExp(`^${name} version`, 'mi'));
+}
+
 await fs.rm(localAppData, { recursive: true, force: true });
 assert.equal(await fs.stat(hostExe).then((stat) => stat.isFile()).catch(() => false), true);
 assert.equal(
@@ -51,6 +73,8 @@ assert.equal(
   await fs.stat(path.join(installDir, 'server', 'src', 'download.js')).then(() => true).catch(() => false),
   expectsDouyin,
 );
+await assertBundledTool('ffmpeg');
+await assertBundledTool('ffprobe');
 if (await existingServiceStatus() !== undefined) {
   console.log('18765 已被占用，跳过进程冒烟测试');
   process.exit(0);

@@ -149,6 +149,10 @@ npm.cmd run test:desktop -- --profile=hybrid
 
 安装器和校验文件输出到 `dist/installer/`。
 
+可通过 `FFMPEG_PATH` 和 `FFPROBE_PATH` 显式指定待打包的二进制。不要把
+`C:\ProgramData\chocolatey\bin` 下的 Chocolatey shim 直接复制进发行包；构建脚本会解析
+Chocolatey 包内的真实文件，并在打包后运行 `-version` 验证二进制可以独立启动。
+
 ## BrowseLife 扩展 ID
 
 包含抖音 Connector 的安装器需要把 BrowseLife 扩展 ID 写入 Native Messaging `allowed_origins`：
