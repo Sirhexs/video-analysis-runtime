@@ -169,8 +169,8 @@ $env:VIDEO_ANALYSIS_EDGE_EXTENSION_ID="nfiieinehobmaofhodfaccgjboegcdck"
 3. 使用 Python 3.11 构建并缓存本地 ASR Bundle。
 4. 并行构建四种 Windows x64 Profile。
 5. 执行桌面 Profile 冒烟测试。
-6. 上传安装器和 SHA-256 Artifact。
-7. Tag 触发时创建 GitHub Release。
+6. 上传包含安装器和 SHA-256 校验文件的 Actions Artifact。
+7. Tag 触发时创建 GitHub Release，并仅发布安装器文件。
 
 发布 `1.0.1` 的示例：
 
@@ -211,7 +211,7 @@ tools/           ASR、桌面包、安装器与冒烟测试脚本
 - 不要提交 `.env`、API Key、Cookie、Runtime Token、模型凭据或用户媒体。
 - Douyin Cookie 只应提供给可信的本机 Runtime。
 - Native Messaging 只允许显式配置的扩展 Origin。
-- 桌面安装器生成 SHA-256 文件，发布后应同时提供校验值。
+- 桌面安装器仍会生成 SHA-256 文件，并保留在 Actions Artifact 中用于内部校验；GitHub Release 仅发布安装器。
 
 ## 参与贡献
 

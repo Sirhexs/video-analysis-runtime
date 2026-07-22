@@ -17,7 +17,7 @@ jobs:
     name: Test server and native host
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify release tag
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
@@ -26,7 +26,7 @@ jobs:
           if ($env:GITHUB_REF_NAME -ne "v$version") {
             throw "Tag $env:GITHUB_REF_NAME does not match package version v$version"
           }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -43,10 +43,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: pip
@@ -54,7 +54,7 @@ jobs:
             server/asr/requirements.txt
             server/asr/requirements-build.txt
       - name: Cache ASR bundle
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: dist/asr-bundle
           key: asr-small-${{ hashFiles('server/asr/**', 'tools/build-asr-bundle.mjs') }}
@@ -67,7 +67,7 @@ jobs:
             server/asr/.venv/Scripts/python.exe -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='Systran/faster-whisper-small', local_dir='dist/model-small')"
             node tools/build-asr-bundle.mjs --model-dir=dist/model-small
           }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: asr-bundle
           path: dist/asr-bundle
@@ -82,13 +82,13 @@ jobs:
       matrix:
         profile: [cloud, hybrid, douyin-cloud, douyin-hybrid]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm, cache-dependency-path: server/package-lock.json }
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
         working-directory: server
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: contains(matrix.profile, 'hybrid')
         with:
           name: asr-bundle
@@ -104,7 +104,7 @@ jobs:
         run: node tools/build-installer.mjs --profile=${{ matrix.profile }}
       - name: Profile smoke test
         run: node tools/test-desktop-smoke.mjs --profile=${{ matrix.profile }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: runtime-${{ matrix.profile }}
           path: |
@@ -118,7 +118,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { contents: write }
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { path: artifacts, pattern: runtime-*, merge-multiple: true }
       - uses: softprops/action-gh-release@v2
-        with: { files: artifacts/* }
+        with: { files: artifacts/*.exe }
